@@ -40,7 +40,7 @@ void Read_Particles_ClusterMerger(std::string filename, long offset, long num,
                                   real_par_in zpos[], real_par_in xvel[],
                                   real_par_in yvel[], real_par_in zvel[],
                                   real_par_in mass[], real_par_in ptype[]);
-void GetClusterCenter( double Cen[][3] );
+void GetClusterCenter( double Cen[][3], double BH_Vel[][3] );
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Par_Init_ByFunction_ClusterMerger
@@ -280,13 +280,6 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
          ParPos[d][p] += ClusterCenter1[d];
    }
 
-   // reset particle mass 
-   const double R_200_1 = 1722.516798*Const_kpc/UNIT_L;
-   for (long p=0; p<NPar_ThisRank_EachCluster[0]; p++) {
-      double r_1 = pow(pow(ParPos[0][p]-ClusterCenter1[0],2.0)+pow(ParPos[1][p]-ClusterCenter1[1],2.0)+pow(ParPos[2][p]-ClusterCenter1[2],2.0),0.5);
-      ParMass[p] *= exp(-pow((r_1/(1.5*R_200_1)),3.0));
-   }	
-//1722.516798
 
    for (long p=NPar_ThisRank_EachCluster[0]; p<NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p++) {
       ParVelX[p] += Merger_Coll_VelX2;
@@ -294,14 +287,6 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
       for (int d=0; d<3; d++)
          ParPos[d][p] += ClusterCenter2[d];
    }
-
-   // reset particle mass
-   const double R_200_2 = 1194.326442*Const_kpc/UNIT_L;
-   for (long p=NPar_ThisRank_EachCluster[0]; p<NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p++) {
-      double r_2 = pow(pow(ParPos[0][p]-ClusterCenter2[0],2.0)+pow(ParPos[1][p]-ClusterCenter2[1],2.0)+pow(ParPos[2][p]-ClusterCenter2[2],2.0),0.5);
-      ParMass[p] *= exp(-pow((r_2/(1.5*R_200_2)),3.0));
-   }
-
 
 
    for (long p=NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p<NPar_ThisRank; p++) {
@@ -647,7 +632,10 @@ void Aux_Record_ClusterMerger()
    double Cen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
                          { NULL_REAL, NULL_REAL, NULL_REAL },
                          { NULL_REAL, NULL_REAL, NULL_REAL }  };
-   GetClusterCenter( Cen );
+   double BH_Vel[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL },
+                            { NULL_REAL, NULL_REAL, NULL_REAL },
+                            { NULL_REAL, NULL_REAL, NULL_REAL }  };
+   GetClusterCenter( Cen, BH_Vel );
 
 
    // output cluster centers
@@ -675,7 +663,7 @@ void Aux_Record_ClusterMerger()
 //
 // Return      :  Cen[]
 //-------------------------------------------------------------------------------------------------------
-void GetClusterCenter( double Cen[][3] )
+void GetClusterCenter( double Cen[][3], double BH_Vel[][3] )
 {
 
    if ( ! Merger_Coll_LabelCenter  &&  MPI_Rank == 0 )
@@ -683,17 +671,21 @@ void GetClusterCenter( double Cen[][3] )
 
 
    const real *ParPos[3] = { amr->Par->PosX, amr->Par->PosY, amr->Par->PosZ };
+   const real *ParVel[3] = { amr->Par->VelX, amr->Par->VelY, amr->Par->VelZ };
 
    for (int c=0; c<Merger_Coll_NumHalos; c++) {
       double Cen_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };   // set to -inf
+      double Vel_Tmp[3] = { -__FLT_MAX__, -__FLT_MAX__, -__FLT_MAX__ };
       for (long p=0; p<amr->Par->NPar_AcPlusInac; p++) {
          if ( amr->Par->Attribute[ParTypeIdx][p] == real(PTYPE_CEN+c) ) {
             for (int d=0; d<3; d++) Cen_Tmp[d] = ParPos[d][p];
+            for (int d=0; d<3; d++) Vel_Tmp[d] = ParVel[d][p];
             break;
          }
       }
       // use MPI_MAX since Cen_Tmp[] is initialized as -inf
       MPI_Reduce( Cen_Tmp, Cen[c], 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
+      MPI_Reduce( Vel_Tmp, BH_Vel[c], 3, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD );
    }
 
 } // FUNCTION : GetClusterCenter
