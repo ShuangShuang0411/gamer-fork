@@ -61,6 +61,22 @@ static FieldIdx_t ColorField1Idx = Idx_Undefined;
 static FieldIdx_t ColorField2Idx = Idx_Undefined;
 static FieldIdx_t ColorField3Idx = Idx_Undefined;
 
+       double Bondi_SinkMass;       // total mass             in the void region removed in one global time-step
+       double Bondi_SinkMomX;       // total x-momentum       ...
+       double Bondi_SinkMomY;       // total y-momentum       ...
+       double Bondi_SinkMomZ;       // total z-momentum       ...
+       double Bondi_SinkMomXAbs;    // total |x-momentum|     ...
+       double Bondi_SinkMomYAbs;    // total |y-momentum|     ...
+       double Bondi_SinkMomZAbs;    // total |z-momentum|     ...
+       double Bondi_SinkEk;         // total kinematic energy ...
+       double Bondi_SinkEt;         // total thermal   energy ...
+       int    Bondi_SinkNCell;      // total number of finest cells within the void region
+
+       double Bondi_MassBH1;        // black hole mass of cluster 1
+       double Bondi_MassBH2;        // black hole mass of cluster 2
+       double Bondi_MassBH3;        // black hole mass of cluster 3
+       double R_Bondi;              // Bondi radius                       
+
 // =======================================================================================
 
 // problem-specific function prototypes
@@ -78,6 +94,9 @@ void Read_Profile_ClusterMerger(std::string filename, std::string fieldname,
                                 double field[]);
 void AddNewField_ClusterMerger();
 void AddNewParticleAttribute_ClusterMerger();
+
+bool Flu_ResetByUser_Func_Bondi( real fluid[], const double Mdot, const double dt, const double ClusterCen[], const double GasVel[], const double x, const double y, const double z, const double Time, const int lv, double AuxArray[] );
+void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTime );
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Validate
@@ -673,6 +692,10 @@ void Init_TestProb_Hydro_ClusterMerger()
    Par_Init_ByFunction_Ptr        = Par_Init_ByFunction_ClusterMerger;
    Init_Field_User_Ptr            = AddNewField_ClusterMerger;
    Par_Init_Attribute_User_Ptr    = AddNewParticleAttribute_ClusterMerger;
+
+   Flu_ResetByUser_Func_Ptr = Flu_ResetByUser_Func_Bondi;
+   Flu_ResetByUser_API_Ptr  = Flu_ResetByUser_API_Bondi;
+
 #  ifdef MHD
    Init_Function_BField_User_Ptr  = SetBFieldIC;
 #  endif
