@@ -15,7 +15,8 @@ extern double Bondi_SinkEt;
 extern int    Bondi_SinkNCell;
 
 extern int    Merger_Coll_NumHalos;
-extern double R_Bondi;
+extern double R_acc;  // the radius to compute the accretoin rate
+extern double R_dep;  // the radius to deplete the accreted gas
 extern double Bondi_MassBH1;
 extern double Bondi_MassBH2;
 extern double Bondi_MassBH3;
@@ -49,26 +50,26 @@ bool Flu_ResetByUser_Func_Bondi( real fluid[], const double Mdot, const double d
 
    const double Pos[3]  = { x, y, z };
    double dr2[3], r2;
-   const double V_Bondi = 4.0/3.0*M_PI*pow(R_Bondi,3.0);
-   const double D_remove = Mdot*dt/V_Bondi;  // the density need to be removed
+   const double V_dep = 4.0/3.0*M_PI*pow(R_dep,3.0);
+   const double D_dep = Mdot*dt/V_dep;  // the density need to be removed
 
    for (int d=0; d<3; d++)
    {
       dr2[d] = SQR( Pos[d] - ClusterCen[d] );
 
 //    skip cells far away from the void region
-      if ( dr2[d] > SQR(R_Bondi) )    return false;
+      if ( dr2[d] > SQR(R_dep) )    return false;
    }
 
 // update the conserved variables
    r2 = dr2[0] + dr2[1] + dr2[2];
-   if ( r2 <= SQR(R_Bondi) )
+   if ( r2 <= SQR(R_dep) )
    {
-      fluid[DENS] -= D_remove;
-      fluid[MOMX] -= D_remove*GasVel[0];
-      fluid[MOMY] -= D_remove*GasVel[1];
-      fluid[MOMZ] -= D_remove*GasVel[2];
-      fluid[ENGY] -= 0.5*D_remove*( SQR(GasVel[0]) + SQR(GasVel[1]) + SQR(GasVel[2]) );
+      fluid[DENS] -= D_dep;
+      fluid[MOMX] -= D_dep*GasVel[0];
+      fluid[MOMY] -= D_dep*GasVel[1];
+      fluid[MOMZ] -= D_dep*GasVel[2];
+      fluid[ENGY] -= 0.5*D_dep*( SQR(GasVel[0]) + SQR(GasVel[1]) + SQR(GasVel[2]) );
 
       return true;
    }
@@ -123,12 +124,12 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTim
       double SinkMass_OneSubStep_ThisRank = 0;
       double SinkMass_OneSubStep_AllRank;
  
-      double rho = 0.0;  // the average density inside Bondi radius
-      double Cs = 0.0;  // the average sound speed inside Bondi radius
-      double GasVel[3] = { 0.0, 0.0, 0.0 }  // the average gas velocity inside Bondi radius
+      double rho = 0.0;  // the average density inside accretion radius
+      double Cs = 0.0;  // the average sound speed inside accretion radius
+      double GasVel[3] = { 0.0, 0.0, 0.0 }  // the average gas velocity inside accretion radius
       double v = 0.0;  // the relative velocity between BH and gas
       double Mdot;  // the accretion rate
-      int num = 0;  // the number of cells inside Bondi radius
+      int num = 0;  // the number of cells inside accretion radius
    
    // reset to 0 since we only want to record the number of void cells **for one sub-step**
       Bondi_SinkNCell = 0;
@@ -152,18 +153,18 @@ void Flu_ResetByUser_API_Bondi( const int lv, const int FluSg, const double TTim
                fluid[v] = amr->patch[FluSg][lv][PID]->fluid[v][k][j][i];
             }
    
-   //       calculate the average density, sound speed and gas velocity inside Bondi radius
-            if (SQR(x-ClusterCen[c][0])+SQR(y-ClusterCen[c][1])+SQR(z-ClusterCen[c][2]) <= SQR(R_Bondi)){
+   //       calculate the average density, sound speed and gas velocity inside accretion radius
+            if (SQR(x-ClusterCen[c][0])+SQR(y-ClusterCen[c][1])+SQR(z-ClusterCen[c][2]) <= SQR(R_acc)){
                rho += fluid[0];
                Cs += sqrt(GAMMA*((GAMMA-1.0)*(fluid[4]-0.5*(SQR(fluid[1])+SQR(fluid[2])+SQR(fluid[3]))/fluid[0]))/fluid[0]);
-               for (int d=0; d<3; d++)  GasVel[d] += fluid[d+1]/fluid[0];
+               for (int d=0; d<3; d++)  GasVel[d] += fluid[d+1];
                num += 1;
             }
          }}}
       }
       rho /= num;
       Cs /= num;
-      for (int d=0; d<3; d++)  GasVel[d] /= num;
+      for (int d=0; d<3; d++)  GasVel[d] /= rho;
       for (int d=0; d<3; d++)  v += SQR(BH_Vel[c][d]-GasVel[d]);
 
    // calculate the accretion rate

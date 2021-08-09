@@ -75,7 +75,8 @@ static FieldIdx_t ColorField3Idx = Idx_Undefined;
        double Bondi_MassBH1;        // black hole mass of cluster 1
        double Bondi_MassBH2;        // black hole mass of cluster 2
        double Bondi_MassBH3;        // black hole mass of cluster 3
-       double R_Bondi;              // Bondi radius                       
+       double R_acc;                // accretion radius: compute the accretion rate
+       double R_dep;                // radius to deplete the accreted gas                       
 
 // =======================================================================================
 
@@ -219,6 +220,11 @@ void SetParameter()
    ReadPara->Add( "Merger_Coll_ColorRad1",  &Merger_Coll_ColorRad1,  -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "Merger_Coll_ColorRad2",  &Merger_Coll_ColorRad2,  -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "Merger_Coll_ColorRad3",  &Merger_Coll_ColorRad3,  -1.0,             NoMin_double,  NoMax_double   );
+   ReadPara->Add( "Bondi_MassBH1",          &Bondi_MassBH1,          -1.0,             Eps_double,    NoMax_double   );
+   ReadPara->Add( "Bondi_MassBH2",          &Bondi_MassBH2,          -1.0,             Eps_double,    NoMax_double   );
+   ReadPara->Add( "Bondi_MassBH3",          &Bondi_MassBH3,          -1.0,             Eps_double,    NoMax_double   );
+   ReadPara->Add( "R_acc",                  &R_acc,                  -1.0,             NoMin_double,  NoMax_double   );
+   ReadPara->Add( "R_dep",                  &R_dep,                  -1.0,             NoMin_double,  NoMax_double   );
 
    ReadPara->Read( FileName );
 
@@ -245,6 +251,11 @@ void SetParameter()
    Merger_Coll_ColorRad1 *= Const_kpc / UNIT_L;
    Merger_Coll_ColorRad2 *= Const_kpc / UNIT_L;
    Merger_Coll_ColorRad3 *= Const_kpc / UNIT_L;
+   Bondi_MassBH1     *= UnitExt_M/UNIT_M;
+   Bondi_MassBH2     *= UnitExt_M/UNIT_M;
+   Bondi_MassBH3     *= UnitExt_M/UNIT_M;
+   R_acc             *= Const_kpc / UNIT_L;
+   R_dep             *= Const_kpc / UNIT_L;
 
 // (2) load the radial profiles
    if ( OPT__INIT != INIT_BY_RESTART ) {
