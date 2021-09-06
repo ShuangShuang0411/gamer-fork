@@ -74,7 +74,7 @@ SIMU_OPTION += -DDUAL_ENERGY=DE_ENPY
 # number of user-defined passively advected scalars
 # --> set it to 0 or comment it out if none is required
 # --> useless for RTVD
-SIMU_OPTION += -DNCOMP_PASSIVE_USER=2
+SIMU_OPTION += -DNCOMP_PASSIVE_USER=1
 
 # magnetohydrodynamics
 #SIMU_OPTION += -DMHD
@@ -161,10 +161,10 @@ SIMU_OPTION += -DMAX_PATCH=1000000
 
 # GPU acceleration
 # --> must set GPU_ARCH as well
-#SIMU_OPTION += -DGPU
+SIMU_OPTION += -DGPU
 
 # GPU architecture: FERMI/KEPLER/MAXWELL/PASCAL/VOLTA/TURING/AMPERE
-SIMU_OPTION += -DGPU_ARCH=KEPLER
+SIMU_OPTION += -DGPU_ARCH=TURING
 
 # debug mode
 #SIMU_OPTION += -DGAMER_DEBUG
