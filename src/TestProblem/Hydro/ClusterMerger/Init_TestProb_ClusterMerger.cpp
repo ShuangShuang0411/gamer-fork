@@ -58,6 +58,9 @@ static FieldIdx_t ColorField1Idx = Idx_Undefined;
 static FieldIdx_t ColorField2Idx = Idx_Undefined;
 static FieldIdx_t ColorField3Idx = Idx_Undefined;
 
+          int First = 1;
+
+
 // =======================================================================================
 
 // problem-specific function prototypes
@@ -250,23 +253,24 @@ void SetParameter()
                for ( int i; i < Merger_NBin1; i++ ) Table_M1[i] = 0.0;
 
             // truncate gas density 
-            for (int b=0; b<Merger_NBin1; b++) {
-               Table_R1[b] /= UNIT_L;
-               
-               Table_D1[b] *= exp(-pow((Table_R1[b]/(1.5*Merger_Coll_ColorRad1)),3.0)); 
-               Table_P1[b] *= exp(-pow((Table_R1[b]/(1.5*Merger_Coll_ColorRad1)),3.0));
-
-               if (Table_D1[b]<1.0e-15*UNIT_D){
-                  Table_D1[b]=1.0e-15*UNIT_D;
-               }
-               if (Table_P1[b]<1.0e-16*UNIT_P){
-                  Table_P1[b]=1.0e-16*UNIT_P;
-               }
-            }
+//            for (int b=0; b<Merger_NBin1; b++) {
+//               Table_R1[b] /= UNIT_L;
+//               
+//               Table_D1[b] *= exp(-pow((Table_R1[b]/(1.5*Merger_Coll_ColorRad1)),3.0)); 
+//               Table_P1[b] *= exp(-pow((Table_R1[b]/(1.5*Merger_Coll_ColorRad1)),3.0));
+//
+//               if (Table_D1[b]<1.0e-15*UNIT_D){
+//                  Table_D1[b]=1.0e-15*UNIT_D;
+//               }
+//               if (Table_P1[b]<1.0e-16*UNIT_P){
+//                  Table_P1[b]=1.0e-16*UNIT_P;
+//               }
+//            }
 
 
             // convert to code units (assuming the input units are cgs)
             for ( int b=0; b<Merger_NBin1; b++ ) {
+               Table_R1[b] /= UNIT_L;
                Table_D1[b] /= UNIT_D;
                Table_P1[b] /= UNIT_P;
             }
@@ -305,20 +309,21 @@ void SetParameter()
                for ( int i; i < Merger_NBin2; i++ ) Table_M2[i] = 0.0;
 
             // truncate gas density 
-            for (int b=0; b<Merger_NBin2; b++) {
-               Table_R2[b] /= UNIT_L;
-               Table_D2[b] *= exp(-pow((Table_R2[b]/(1.5*Merger_Coll_ColorRad2)),3.0)); 
-               Table_P2[b] *= exp(-pow((Table_R2[b]/(1.5*Merger_Coll_ColorRad2)),3.0));
-               if (Table_D2[b]<1.0e-15*UNIT_D){
-                  Table_D2[b]=1.0e-15*UNIT_D;
-               }   
-               if (Table_P2[b]<1.0e-16*UNIT_P){
-                  Table_P2[b]=1.0e-16*UNIT_P;
-               }   
-            }
+//            for (int b=0; b<Merger_NBin2; b++) {
+//               Table_R2[b] /= UNIT_L;
+//               Table_D2[b] *= exp(-pow((Table_R2[b]/(1.5*Merger_Coll_ColorRad2)),3.0)); 
+//               Table_P2[b] *= exp(-pow((Table_R2[b]/(1.5*Merger_Coll_ColorRad2)),3.0));
+//               if (Table_D2[b]<1.0e-15*UNIT_D){
+//                  Table_D2[b]=1.0e-15*UNIT_D;
+//               }   
+//               if (Table_P2[b]<1.0e-16*UNIT_P){
+//                  Table_P2[b]=1.0e-16*UNIT_P;
+//               }   
+//            }
 
             // convert to code units (assuming the input units are cgs)
             for ( int b=0; b<Merger_NBin2; b++ ) {
+               Table_R2[b] /= UNIT_L;
                Table_D2[b] /= UNIT_D;
                Table_P2[b] /= UNIT_P;
             }
@@ -482,6 +487,12 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    rmax1 = Table_R1[Merger_NBin1-1];
    rmax2 = Merger_Coll_NumHalos > 1 ? Table_R2[Merger_NBin2-1] : -1.0;
    rmax3 = Merger_Coll_NumHalos > 2 ? Table_R3[Merger_NBin3-1] : -1.0;
+
+//   if (First==1){
+//      Aux_Message( stdout, "  ***************************************************rmax1 = %14.8e\n", rmax1);
+//      Aux_Message( stdout, "  ***************************************************rmax2 = %14.8e\n", rmax2);
+//      First=0;
+//   }
 
    //    for each cell, we sum up the density and pressure from each halo and then calculate the weighted velocity
    if ( Merger_Coll_IsGas1 ) {
