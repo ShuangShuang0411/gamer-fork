@@ -68,6 +68,11 @@ static RandomNumber_t *RNG = NULL;
 
 double Jet_WaveK[3];  // jet wavenumber used in the sin() function to have smooth bidirectional jets
 
+double Jet_HalfHeight[3];
+double Jet_Radius[3]; 
+double V_cyl[3]; // the volume of jet source
+double M_inj[3], P_inj[3], E_inj[3]; // the injected density
+
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flu_ResetByUser_Func_ClusterMerger
@@ -136,26 +141,10 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
 
 // (2) Jet Feedback
 
-   const double Jet_HalfHeight[3] = { Jet_HalfHeight1, Jet_HalfHeight2, Jet_HalfHeight3 };
-   const double Jet_Radius[3] = { Jet_Radius1, Jet_Radius2, Jet_Radius3 };
-   double V_cyl[3]; // the volume of jet source
-   double M_inj[3], P_inj[3], E_inj[3]; // the injected density
-
-   for (int c=0; c<Merger_Coll_NumHalos; c++) { 
-      V_cyl[c] = M_PI*SQR(Jet_Radius[c])*2*Jet_HalfHeight[c];
-//    calculate the density that need to be injected
-      M_inj[c] = Mdot[c]*dt/V_cyl[c];
-      P_inj[c] = Pdot[c]*dt/V_cyl[c];
-      E_inj[c] = Edot[c]*dt/V_cyl[c];
-      
-      Jet_WaveK[c] = 0.5*M_PI/Jet_HalfHeight[c];
-   } 
-
    double Jet_dr, Jet_dh, S, Area;
    double Dis_c2m, Dis_c2v, Dis_v2m, Vec_c2m[3], Vec_v2m[3];
    double TempVec[3]; 
    real   MomSin;
-
 
    for (int c=0; c<Merger_Coll_NumHalos; c++)
    {
@@ -306,15 +295,6 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
       }
    } // for (int c=0; c<Merger_Coll_NumHalos; c++)
 
-   if ( lv == MAX_LEVEL ){
-//      Aux_Message( stdout, "=============================================================================\n" );
-//      Aux_Message( stdout, "  Time                 = %g\n",           TimeNew );
-//      Aux_Message( stdout, "  dt                   = %g\n",           dt );
-//      Aux_Message( stdout, "  Bondi_MassBH1        = %14.8e\n",           Bondi_MassBH[0] );
-//      Aux_Message( stdout, "  accretion rate       = %14.8e\n",           Mdot_BH[0] );
-//      Aux_Message( stdout, "=============================================================================\n" );
-   } 
-
    Mdot_BH1 = Mdot_BH[0];                            
    Mdot_BH2 = Mdot_BH[1];                            
    Mdot_BH3 = Mdot_BH[2];
@@ -327,22 +307,26 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
    Bondi_MassBH2 = Bondi_MassBH[1];
    Bondi_MassBH3 = Bondi_MassBH[2];
 
+   Jet_HalfHeight[0] = Jet_HalfHeight1;
+   Jet_HalfHeight[1] = Jet_HalfHeight2;
+   Jet_HalfHeight[2] = Jet_HalfHeight3;
+   Jet_Radius[0] = Jet_Radius1;
+   Jet_Radius[1] = Jet_Radius2;
+   Jet_Radius[2] = Jet_Radius3;
 
 // calculate the injection rate
    for (int c=0; c<Merger_Coll_NumHalos; c++){
       Mdot[c] = eta*Mdot_BH[c];
       Pdot[c] = sqrt(2*eta*eps_f*(1-eps_m))*Mdot_BH[c]*(Const_c/UNIT_V);
       Edot[c] = eps_f*Mdot_BH[c]*SQR(Const_c/UNIT_V);
+      V_cyl[c] = M_PI*SQR(Jet_Radius[c])*2*Jet_HalfHeight[c];
+//    calculate the density that need to be injected
+      M_inj[c] = Mdot[c]*dt/V_cyl[c];
+      P_inj[c] = Pdot[c]*dt/V_cyl[c];
+      E_inj[c] = Edot[c]*dt/V_cyl[c];
+      
+      Jet_WaveK[c] = 0.5*M_PI/Jet_HalfHeight[c];
    }
-   if ( lv == MAX_LEVEL ){
-//      Aux_Message( stdout, "=============================================================================\n" );
-//      Aux_Message( stdout, "  Time                 = %g\n",           TimeNew );
-//      Aux_Message( stdout, "  dt                   = %g\n",           dt );
-//      Aux_Message( stdout, "  Mdot                 = %14.8e\n",           Mdot[0] );
-//      Aux_Message( stdout, "  Pdot                 = %14.8e\n",           Pdot[0] );
-//      Aux_Message( stdout, "  Edot                 = %14.8e\n",           Edot[0] );
-//      Aux_Message( stdout, "=============================================================================\n" );
-   }   
 
 // get the number of OpenMP threads
    int NT; 
