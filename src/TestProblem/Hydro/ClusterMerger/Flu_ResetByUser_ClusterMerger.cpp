@@ -79,6 +79,9 @@ double Jet_Radius[3];
 double V_cyl[3]; // the volume of jet source
 double M_inj[3], P_inj[3], E_inj[3]; // the injected density
 
+double E_inj_exp[3];
+double dt_base;
+double E_power_inj[3];
 
 //-------------------------------------------------------------------------------------------------------
 // Function    :  Flu_ResetByUser_Func_ClusterMerger
@@ -180,7 +183,7 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
          fluid[DENS] += M_inj[c];
 
 //       use a sine function to make the velocity smooth within the jet from +Jet_Vec to -Jet_Vec
-         MomSin       = P_inj[c]*0.5*M_PI*sin( Jet_WaveK[c]*Jet_dh );
+         MomSin       = P_inj[c]*sqrt(2.0)*sin( Jet_WaveK[c]*Jet_dh );
          MomSin      *= SIGN( Vec_c2m[0]*Jet_Vec[c][0] + Vec_c2m[1]*Jet_Vec[c][1] + Vec_c2m[2]*Jet_Vec[c][2] );
          fluid[MOMX] += MomSin*Jet_Vec[c][0];
          fluid[MOMY] += MomSin*Jet_Vec[c][1];
@@ -337,6 +340,8 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
       
       Jet_WaveK[c] = 0.5*M_PI/Jet_HalfHeight[c];
    }
+
+   if ( lv == 0 )  dt_base = dt;
 
 // get the number of OpenMP threads
    int NT; 
