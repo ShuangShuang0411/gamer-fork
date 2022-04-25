@@ -45,6 +45,12 @@ extern double SoundSpeed[3];
 extern double GasDens[3];
 extern double RelativeVel[3]; // the relative velocity between BH and gas
 
+// check the injection
+double DENS_org[3];
+double MOMX_org[3];
+double MOMXabs_org[3];
+double ENGY_org[3];
+
 double ClusterCen[3][3] = {  { NULL_REAL, NULL_REAL, NULL_REAL }, // cluster center       
                              { NULL_REAL, NULL_REAL, NULL_REAL },
                              { NULL_REAL, NULL_REAL, NULL_REAL }  };  
@@ -181,6 +187,8 @@ bool Flu_ResetByUser_Func_ClusterMerger( real fluid[], const double x, const dou
          fluid[MOMZ] += MomSin*Jet_Vec[c][2];
 
          fluid[ENGY] += E_inj[c]; 
+//         fluid[ENGY] += 0.5*((SQR(fluid[MOMX])+SQR(fluid[MOMY])+SQR(fluid[MOMZ]))-(SQR(fluid[MOMX]-MomSin*Jet_Vec[c][0])+SQR(fluid[MOMY]-MomSin*Jet_Vec[c][1])+SQR(fluid[MOMZ]-MomSin*Jet_Vec[c][2])))/fluid[DENS]; 
+//         fluid[ENGY] += 0.5*(SQR(MomSin*Jet_Vec[c][0])+SQR(MomSin*Jet_Vec[c][1])+SQR(MomSin*Jet_Vec[c][2]))/fluid[DENS]; 
 
 //       return immediately since we do NOT allow different jet source to overlap
          return true;
@@ -233,67 +241,69 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
 // reset to 0 since we only want to record the number of void cells **for one sub-step**
    for (int c=0; c<Merger_Coll_NumHalos; c++) CM_Bondi_SinkNCell[c] = 0;
 
-   for (int c=0; c<Merger_Coll_NumHalos; c++) { 
-
-//    reset gas velocity to zero
-      for (int d=0; d<3; d++)  GasVel[c][d] = 0.0;
-
-      const bool CheckMinPres_No = false;
-
-      double rho = 0.0;  // the average density inside accretion radius
-      double Pres; // use for calculation of sound speed
-      double Cs = 0.0;  // the average sound speed inside accretion radius
-      double v = 0.0;  // the relative velocity between BH and gas
-      double num = 0.0;  // the number of cells inside accretion radius
+   if ( lv == MAX_LEVEL ){
+      for (int c=0; c<Merger_Coll_NumHalos; c++) { 
    
-      for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
-      {
-         x0 = amr->patch[0][lv][PID]->EdgeL[0] + 0.5*dh;
-         y0 = amr->patch[0][lv][PID]->EdgeL[1] + 0.5*dh;
-         z0 = amr->patch[0][lv][PID]->EdgeL[2] + 0.5*dh;
+   //    reset gas velocity to zero
+         for (int d=0; d<3; d++)  GasVel[c][d] = 0.0;
    
-         for (int k=0; k<PS1; k++)  {  z = z0 + k*dh; 
-         for (int j=0; j<PS1; j++)  {  y = y0 + j*dh; 
-         for (int i=0; i<PS1; i++)  {  x = x0 + i*dh;
+         const bool CheckMinPres_No = false;
    
-            for (int v=0; v<NCOMP_TOTAL; v++){
-               fluid[v] = amr->patch[FluSg][lv][PID]->fluid[v][k][j][i];
-            }
+         double rho = 0.0;  // the average density inside accretion radius
+         double Pres; // use for calculation of sound speed
+         double Cs = 0.0;  // the average sound speed inside accretion radius
+         double v = 0.0;  // the relative velocity between BH and gas
+         double num = 0.0;  // the number of cells inside accretion radius
    
-//          calculate the average density, sound speed and gas velocity inside accretion radius
-            if (SQR(x-ClusterCen[c][0])+SQR(y-ClusterCen[c][1])+SQR(z-ClusterCen[c][2]) <= SQR(R_acc)){
-               rho += fluid[0];
-               Pres = (real) Hydro_Con2Pres( fluid[0], fluid[1], fluid[2], fluid[3],
-                                             fluid[4], fluid+NCOMP_FLUID,
-                                             CheckMinPres_No, NULL_REAL, NULL_REAL,
-                                             EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt,
-                                             EoS_AuxArray_Int, h_EoS_Table, NULL );
-               Cs += sqrt(  EoS_DensPres2CSqr_CPUPtr( fluid[0], Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int,
-                                                      h_EoS_Table, NULL )  );
-               for (int d=0; d<3; d++)  GasVel[c][d] += fluid[d+1];
-               num += 1.0;
-            }
-         }}}
-      }
-      if (num == 0.0){
-         Mdot_BH[c] = 0.0;
-         GasDens[c] = 0.0;
-         SoundSpeed[c] = 0.0;
-         RelativeVel[c] = 0.0;
-      }
-      else{
-         for (int d=0; d<3; d++)  GasVel[c][d] /= rho;
-         rho /= num;
-         Cs /= num;
-         for (int d=0; d<3; d++)  v += SQR(BH_Vel[c][d]-GasVel[c][d]);
-
-//       calculate the accretion rate
-         Mdot_BH[c] = 100*4.0*M_PI*SQR(NEWTON_G)*SQR(Bondi_MassBH[c])*rho/pow(Cs*Cs+v,1.5);
-         GasDens[c] = rho;
-         SoundSpeed[c] = Cs;
-         RelativeVel[c] = sqrt(v);
-      }
-   } // for (int c=0; c<Merger_Coll_NumHalos; c++)
+         for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
+         {
+            x0 = amr->patch[0][lv][PID]->EdgeL[0] + 0.5*dh;
+            y0 = amr->patch[0][lv][PID]->EdgeL[1] + 0.5*dh;
+            z0 = amr->patch[0][lv][PID]->EdgeL[2] + 0.5*dh;
+      
+            for (int k=0; k<PS1; k++)  {  z = z0 + k*dh; 
+            for (int j=0; j<PS1; j++)  {  y = y0 + j*dh; 
+            for (int i=0; i<PS1; i++)  {  x = x0 + i*dh;
+      
+               for (int v=0; v<NCOMP_TOTAL; v++){
+                  fluid[v] = amr->patch[FluSg][lv][PID]->fluid[v][k][j][i];
+               }
+      
+   //          calculate the average density, sound speed and gas velocity inside accretion radius
+               if (SQR(x-ClusterCen[c][0])+SQR(y-ClusterCen[c][1])+SQR(z-ClusterCen[c][2]) <= SQR(R_acc)){
+                  rho += fluid[0];
+                  Pres = (real) Hydro_Con2Pres( fluid[0], fluid[1], fluid[2], fluid[3],
+                                                fluid[4], fluid+NCOMP_FLUID,
+                                                CheckMinPres_No, NULL_REAL, NULL_REAL,
+                                                EoS_DensEint2Pres_CPUPtr, EoS_AuxArray_Flt,
+                                                EoS_AuxArray_Int, h_EoS_Table, NULL );
+                  Cs += sqrt(  EoS_DensPres2CSqr_CPUPtr( fluid[0], Pres, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int,
+                                                         h_EoS_Table, NULL )  );
+                  for (int d=0; d<3; d++)  GasVel[c][d] += fluid[d+1];
+                  num += 1.0;
+               }
+            }}}
+         }
+         if (num == 0.0){
+            Mdot_BH[c] = 0.0;
+            GasDens[c] = 0.0;
+            SoundSpeed[c] = 0.0;
+            RelativeVel[c] = 0.0;
+         }
+         else{
+            for (int d=0; d<3; d++)  GasVel[c][d] /= rho;
+            rho /= num;
+            Cs /= num;
+            for (int d=0; d<3; d++)  v += SQR(BH_Vel[c][d]-GasVel[c][d]);
+   
+   //       calculate the accretion rate
+            Mdot_BH[c] = 100*4.0*M_PI*SQR(NEWTON_G)*SQR(Bondi_MassBH[c])*rho/pow(Cs*Cs+v,1.5);
+            GasDens[c] = rho;
+            SoundSpeed[c] = Cs;
+            RelativeVel[c] = sqrt(v);
+         }
+      } // for (int c=0; c<Merger_Coll_NumHalos; c++)
+   } // if ( lv == MAX_LEVEL )
 
    Mdot_BH1 = Mdot_BH[0];                            
    Mdot_BH2 = Mdot_BH[1];                            
@@ -439,6 +449,11 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const dou
                   CM_Bondi_SinkEk[c]      += dv*(Ek_new[c]-Ek[c]);
                   CM_Bondi_SinkEt[c]      += dv*(Et_new[c]-Et[c]);
                   CM_Bondi_SinkNCell[c]   ++;
+
+                  DENS_org[c] += dv*fluid_bk[DENS];
+                  MOMX_org[c] += dv*fluid_bk[MOMX];
+                  ENGY_org[c] += dv*fluid_bk[ENGY];
+                  MOMXabs_org[c] += dv*FABS(fluid_bk[MOMX]);
                } // for (int c=0; c<Merger_Coll_NumHalos; c++)
             }
          } // if ( Reset )

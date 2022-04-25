@@ -33,6 +33,11 @@ extern bool    Merger_Coll_LabelCenter;
 
 extern FieldIdx_t ParTypeIdx;
 
+extern double  Merger_Coll_ColorRad1;
+extern double  Merger_Coll_ColorRad2;
+extern double  Merger_Coll_ColorRad3;
+extern int IfTruncation;
+
 // variables that need to be record in Record__Center
 // =======================================================================================
 extern double  Bondi_MassBH1;
@@ -64,6 +69,10 @@ extern double Mdot[3]; // the feedback injection rate
 extern double Pdot[3];
 extern double Edot[3];
 
+extern double DENS_org[3];
+extern double MOMX_org[3];
+extern double ENGY_org[3];
+extern double MOMXabs_org[3];
 
 // =======================================================================================
 
@@ -314,7 +323,13 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
          ParPos[d][p] += ClusterCenter1[d];
    }
 
-   // NO reset particle mass 
+   // If reset particle mass 
+   if (IfTruncation==1){
+      for (long p=0; p<NPar_ThisRank_EachCluster[0]; p++) {
+         double r_1 = pow(pow(ParPos[0][p]-ClusterCenter1[0],2.0)+pow(ParPos[1][p]-ClusterCenter1[1],2.0)+pow(ParPos[2][p]-ClusterCenter1[2],2.0),0.5);
+         ParMass[p] *= exp(-pow((r_1/(1.5*Merger_Coll_ColorRad1)),3.0));
+      }	
+   }
 
    for (long p=NPar_ThisRank_EachCluster[0]; p<NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p++) {
       ParVelX[p] += Merger_Coll_VelX2;
@@ -323,8 +338,13 @@ void Par_Init_ByFunction_ClusterMerger( const long NPar_ThisRank, const long NPa
          ParPos[d][p] += ClusterCenter2[d];
    }
 
-   // NO reset particle mass
-
+   // If reset particle mass
+   if (IfTruncation==1){
+      for (long p=NPar_ThisRank_EachCluster[0]; p<NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p++) {
+         double r_2 = pow(pow(ParPos[0][p]-ClusterCenter2[0],2.0)+pow(ParPos[1][p]-ClusterCenter2[1],2.0)+pow(ParPos[2][p]-ClusterCenter2[2],2.0),0.5);
+         ParMass[p] *= exp(-pow((r_2/(1.5*Merger_Coll_ColorRad2)),3.0));
+      }
+   }
 
    for (long p=NPar_ThisRank_EachCluster[0]+NPar_ThisRank_EachCluster[1]; p<NPar_ThisRank; p++) {
       ParVelX[p] += Merger_Coll_VelX3;
@@ -654,9 +674,9 @@ void Aux_Record_ClusterMerger()
             Aux_Message( stderr, "WARNING : file \"%s\" already exists !!\n", FileName );
 
          FILE *File_User = fopen( FileName, "a" );
-         fprintf( File_User, "#%13s%14s",  "Time", "Step" );
+         fprintf( File_User, "#%13s%14s",  "Time[Myr]", "Step" );
          for (int c=0; c<Merger_Coll_NumHalos; c++)
-            fprintf( File_User, " %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d", "x", c, "y", c, "z", c, "BHVel_x[km/s]", c, "BHVel_y", c, "BHVel_z", c, "GasVel_x", c,"GasVel_y", c,"GasVel_z", c, "RelativeVel", c, "SoundSpeed", c, "GasDens", c, "mass_BH[Msun]", c, "Mdot[Msun/yr]", c, "NVoidCell", c, "MomX[g*cm/s]", c, "MomY[g*cm/s]", c,"MomZ[g*cm/s]", c, "MomXAbs", c, "MomYAbs", c, "MomZAbs", c, "E[erg]", c, "Ek[erg]", c, "Et[erg]", c, "SinkMass", c, "Mdot", c, "Pdot", c, "Edot", c, "Jet_Vec_x", c, "Jet_Vec_y", c, "Jet_Vec_z", c );
+            fprintf( File_User, " %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d %13s%1d", "x", c, "y", c, "z", c, "BHVel_x[km/s]", c, "BHVel_y", c, "BHVel_z", c, "GasVel_x", c,"GasVel_y", c,"GasVel_z", c, "RelativeVel", c, "SoundSpeed", c, "GasDens", c, "mass_BH[Msun]", c, "Mdot[Msun/yr]", c, "NVoidCell", c, "MomX[g*cm/s]", c, "MOMX_org", c, "MomY[g*cm/s]", c,"MomZ[g*cm/s]", c, "MomXAbs", c, "MOMXabs_org", c, "MomYAbs", c, "MomZAbs", c, "E[erg]", c, "ENGY_org", c, "Ek[erg]", c, "Et[erg]", c, "SinkMass", c, "MASS_org", c, "Mdot", c, "Pdot(cgs)", c, "Edot(cgs)", c, "Jet_Vec_x", c, "Jet_Vec_y", c, "Jet_Vec_z", c );
          fprintf( File_User, "\n" );
          fclose( File_User );
       }
@@ -718,6 +738,10 @@ void Aux_Record_ClusterMerger()
       E_Sum[c]      *= UNIT_E;
       Ek_Sum[c]      *= UNIT_E;
       Et_Sum[c]      *= UNIT_E;
+      DENS_org[c] *= UNIT_M/Const_Msun;
+      MOMX_org[c] *= UNIT_M*UNIT_L/UNIT_T;
+      MOMXabs_org[c] *= UNIT_M*UNIT_L/UNIT_T;
+      ENGY_org[c] *= UNIT_E;
    }
 
 
@@ -725,9 +749,9 @@ void Aux_Record_ClusterMerger()
    if ( MPI_Rank == 0 )
    {
       FILE *File_User = fopen( FileName, "a" );
-      fprintf( File_User, "%14.7e%14ld", Time[0], Step );
+      fprintf( File_User, "%14.7e%14ld", Time[0]*UNIT_T/Const_Myr, Step );
       for (int c=0; c<Merger_Coll_NumHalos; c++)
-         fprintf( File_User, " %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14d %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e", Cen[c][0], Cen[c][1], Cen[c][2], BH_Vel[c][0], BH_Vel[c][1], BH_Vel[c][2], GasVel[c][0]*UNIT_V/(Const_km/Const_s), GasVel[c][1]*UNIT_V/(Const_km/Const_s), GasVel[c][2]*UNIT_V/(Const_km/Const_s), RelativeVel[c]*UNIT_V/(Const_km/Const_s), SoundSpeed[c]*UNIT_V/(Const_km/Const_s), GasDens[c]*UNIT_D/(Const_Msun/pow(Const_kpc,3)), Bondi_MassBH[c], Mdot_BH[c], SinkNCell_Sum[c], MomX_Sum[c], MomY_Sum[c], MomZ_Sum[c], MomXAbs_Sum[c], MomYAbs_Sum[c], MomZAbs_Sum[c], E_Sum[c], Ek_Sum[c], Et_Sum[c], Mass_Sum[c], Mdot[c], Pdot[c], Edot[c], Jet_Vec[c][0], Jet_Vec[c][1], Jet_Vec[c][2] );
+         fprintf( File_User, " %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14d %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e %14.7e  %14.7e", Cen[c][0], Cen[c][1], Cen[c][2], BH_Vel[c][0], BH_Vel[c][1], BH_Vel[c][2], GasVel[c][0]*UNIT_V/(Const_km/Const_s), GasVel[c][1]*UNIT_V/(Const_km/Const_s), GasVel[c][2]*UNIT_V/(Const_km/Const_s), RelativeVel[c]*UNIT_V/(Const_km/Const_s), SoundSpeed[c]*UNIT_V/(Const_km/Const_s), GasDens[c]*UNIT_D/(Const_Msun/pow(Const_kpc,3)), Bondi_MassBH[c], Mdot_BH[c], SinkNCell_Sum[c], MomX_Sum[c], MOMX_org[c], MomY_Sum[c], MomZ_Sum[c], MomXAbs_Sum[c], MOMXabs_org[c], MomYAbs_Sum[c], MomZAbs_Sum[c], E_Sum[c], ENGY_org[c], Ek_Sum[c], Et_Sum[c], Mass_Sum[c], DENS_org[c], Mdot[c], Pdot[c], Edot[c], Jet_Vec[c][0], Jet_Vec[c][1], Jet_Vec[c][2] );
       fprintf( File_User, "\n" );
       fclose( File_User );
    }
@@ -744,6 +768,10 @@ void Aux_Record_ClusterMerger()
       CM_Bondi_SinkE[c]      = 0.0;
       CM_Bondi_SinkEk[c]      = 0.0;
       CM_Bondi_SinkEt[c]      = 0.0;
+      DENS_org[c] = 0.0;
+      MOMX_org[c] = 0.0;
+      MOMXabs_org[c] = 0.0;
+      ENGY_org[c] = 0.0;
    }
 
 } // FUNCTION : Aux_Record_ClusterMerger

@@ -53,3 +53,4 @@ Merger_Coll_UseMetals   0 # look for a metal field in the profile files [1]
 Merger_Coll_LabelCenter 1 # label the particle closest to the center of each cluster [1]
 R_acc                   4.0 # accretion radius: compute the accretion rate (in kpc)
 R_dep                   4.0 # radius to deplete the accreted gas (in kpc)
+IfTruncation            0 # Test Perseus cluster, set to 0; Test our original clusters, set to 1 (our truncation) 

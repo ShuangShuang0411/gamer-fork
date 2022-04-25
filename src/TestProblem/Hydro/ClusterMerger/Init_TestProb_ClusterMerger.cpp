@@ -10,6 +10,7 @@
 // problem-specific global variables
 // =======================================================================================
        int     Merger_Coll_NumHalos;      // number of clusters
+       int     IfTruncation;              // If truncation is applied
 static char    Merger_File_Prof1[1000];   // profile table of cluster 1
 static char    Merger_File_Prof2[1000];   // profile table of cluster 2
 static char    Merger_File_Prof3[1000];   // profile table of cluster 3
@@ -265,6 +266,7 @@ void SetParameter()
    ReadPara->Add( "eta",                    &eta,                    -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "eps_f",                  &eps_f,                  -1.0,             NoMin_double,  NoMax_double   );
    ReadPara->Add( "eps_m",                  &eps_m,                  -1.0,             NoMin_double,  NoMax_double   );
+   ReadPara->Add( "IfTruncation",           &IfTruncation,            0,               0,             1              );
 
    ReadPara->Read( FileName );
 
@@ -337,15 +339,27 @@ void SetParameter()
             else
                for ( int i; i < Merger_NBin1; i++ ) Table_M1[i] = 0.0;
 
-			// NO truncate gas density 
+            // If truncate gas density 
+            if (IfTruncation == 1){
+               for (int b=0; b<Merger_NBin1; b++) {
+                  Table_D1[b] *= exp(-pow((Table_R1[b]/UNIT_L/(1.5*Merger_Coll_ColorRad1)),3.0)); 
+                  Table_P1[b] *= exp(-pow((Table_R1[b]/UNIT_L/(1.5*Merger_Coll_ColorRad1)),3.0));
+                  if (Table_D1[b]<1.0e-15*UNIT_D) Table_D1[b]=1.0e-15*UNIT_D;
+                  if (Table_P1[b]<1.0e-16*UNIT_P) Table_P1[b]=1.0e-16*UNIT_P;
 
-            // convert to code units (assuming the input units are cgs)
-            for ( int b=0; b<Merger_NBin1; b++ ) {
-                 Table_R1[b] *= Const_kpc/UNIT_L;
-                 Table_D1[b] *= (Const_Msun/pow(Const_kpc,3))/UNIT_D;
-                 Table_P1[b] *= (Const_Msun/Const_kpc/pow(Const_Myr,2))/UNIT_P;
+                  Table_R1[b] /= UNIT_L;
+                  Table_D1[b] /= UNIT_D;
+                  Table_P1[b] /= UNIT_P;
+               }
             }
-
+            else {
+               // convert to code units (assuming the input units are cgs)
+               for ( int b=0; b<Merger_NBin1; b++ ) {
+                    Table_R1[b] *= Const_kpc/UNIT_L;
+                    Table_D1[b] *= (Const_Msun/pow(Const_kpc,3))/UNIT_D;
+                    Table_P1[b] *= (Const_Msun/Const_kpc/pow(Const_Myr,2))/UNIT_P;
+               }
+            }
          }
 
          MPI_Bcast(Table_R1, Merger_NBin1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -379,15 +393,27 @@ void SetParameter()
             else
                for ( int i; i < Merger_NBin2; i++ ) Table_M2[i] = 0.0;
 
-			// NO truncate gas density 
+            // If truncate gas density 
+            if (IfTruncation == 1){ 
+               for (int b=0; b<Merger_NBin2; b++) {
+                  Table_D2[b] *= exp(-pow((Table_R2[b]/UNIT_L/(1.5*Merger_Coll_ColorRad2)),3.0));                             
+                  Table_P2[b] *= exp(-pow((Table_R2[b]/UNIT_L/(1.5*Merger_Coll_ColorRad2)),3.0));
+                  if (Table_D2[b]<1.0e-15*UNIT_D) Table_D2[b]=1.0e-15*UNIT_D;
+                  if (Table_P2[b]<1.0e-16*UNIT_P) Table_P2[b]=1.0e-16*UNIT_P;
 
-            // convert to code units (assuming the input units are cgs)
-            for ( int b=0; b<Merger_NBin2; b++ ) {
-               Table_R2[b] /= UNIT_L;
-               Table_D2[b] /= UNIT_D;
-               Table_P2[b] /= UNIT_P;
-            }
-
+                  Table_R2[b] /= UNIT_L;
+                  Table_D2[b] /= UNIT_D; 
+                  Table_P2[b] /= UNIT_P;
+               }   
+            }  
+            else {
+               // convert to code units (assuming the input units are cgs)
+               for ( int b=0; b<Merger_NBin2; b++ ) {
+                    Table_R2[b] *= Const_kpc/UNIT_L;
+                    Table_D2[b] *= (Const_Msun/pow(Const_kpc,3))/UNIT_D;
+                    Table_P2[b] *= (Const_Msun/Const_kpc/pow(Const_Myr,2))/UNIT_P;
+               }         
+            }     
          }
 
          MPI_Bcast(Table_R2, Merger_NBin2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
