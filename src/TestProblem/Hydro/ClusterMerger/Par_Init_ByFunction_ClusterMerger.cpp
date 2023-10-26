@@ -786,8 +786,7 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
                const double *EdgeL = amr->patch[0][lv][PID]->EdgeL;
                const double *EdgeR = amr->patch[0][lv][PID]->EdgeR;
                const double patch_pos[3] = { (EdgeL[0]+EdgeR[0])*0.5, (EdgeL[1]+EdgeR[1])*0.5, (EdgeL[2]+EdgeR[2])*0.5 };
-               const double patch_d = sqrt(SQR(EdgeL[0]-EdgeR[0])+SQR(EdgeL[1]-EdgeR[1])+SQR(EdgeL[2]-EdgeR[2]))*0.5;
-               if (SQR(patch_pos[0]-Cen_new_pre[c][0])+SQR(patch_pos[1]-Cen_new_pre[c][1])+SQR(patch_pos[2]-Cen_new_pre[c][2]) <= SQR(4*R_acc+patch_d)){
+               if (SQR(patch_pos[0]-Cen_old[c][0])+SQR(patch_pos[1]-Cen_old[c][1])+SQR(patch_pos[2]-Cen_old[c][2]) <= SQR(500*R_acc)){
                   for (int p=0; p<amr->patch[0][lv][PID]->NPar; p++) {
                      const long ParID = amr->patch[0][lv][PID]->ParList[p];
                      const real ParX_tmp = amr->Par->PosX[ParID];
@@ -797,7 +796,7 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
                      const real VelX_tmp = amr->Par->VelX[ParID];
                      const real VelY_tmp = amr->Par->VelY[ParID];
                      const real VelZ_tmp = amr->Par->VelZ[ParID];
-                     if ( SQR(ParX_tmp-Cen_new_pre[c][0])+SQR(ParY_tmp-Cen_new_pre[c][1])+SQR(ParZ_tmp-Cen_new_pre[c][2]) <= SQR(2*R_acc) ){
+                     if ( SQR(ParX_tmp-Cen_old[c][0])+SQR(ParY_tmp-Cen_old[c][1])+SQR(ParZ_tmp-Cen_old[c][2]) <= SQR(250*R_acc) ){
 //                      Record the mass, position and velocity of this particle
                         ParX[c][num_par[c]] = ParX_tmp;
                         ParY[c][num_par[c]] = ParY_tmp;

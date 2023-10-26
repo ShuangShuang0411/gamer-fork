@@ -448,8 +448,6 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
          GasDens[c] = 0.0;
          SoundSpeed[c] = 0.0;
          RelativeVel[c] = 0.0;
-         for (int d=0; d<3; d++)  GasVel[c][d] = 0.0;
-         for (int d=0; d<3; d++)  BH_Pos[c][d] = ClusterCen[c][d];
       }
       else{
          for (int d=0; d<3; d++)  gas_vel_sum[d] /= rho_sum;
@@ -515,7 +513,7 @@ void Flu_ResetByUser_API_ClusterMerger( const int lv, const int FluSg, const int
    }
    if ( lv == 0 )  dt_base = dt;
 
-   if ( MPI_Rank == 0 && CurrentMaxLv )  Aux_Message( stdout, "Debugging! TimeNew = %14.8e, GasDens = %14.8e, SoundSpeed = %14.8e, RelativeVel = %14.8e, Edot = %14.8e\n", TimeNew, GasDens[0], SoundSpeed[0], RelativeVel[0], Edot[0] );
+//   if ( MPI_Rank == 0 && CurrentMaxLv )  Aux_Message( stdout, "Debugging! TimeNew = %14.8e, GasDens = %14.8e, SoundSpeed = %14.8e, RelativeVel = %14.8e, Edot = %14.8e\n", TimeNew, GasDens[0], SoundSpeed[0], RelativeVel[0], Edot[0] );
 
 #  pragma omp parallel for private( Reset, fluid, fluid_bk, x, y, z, x0, y0, z0 ) schedule( runtime ) \
    reduction(+:CM_Bondi_SinkMass, CM_Bondi_SinkMomX, CM_Bondi_SinkMomY, CM_Bondi_SinkMomZ, CM_Bondi_SinkMomXAbs, CM_Bondi_SinkMomYAbs, CM_Bondi_SinkMomZAbs, CM_Bondi_SinkE, CM_Bondi_SinkEk, CM_Bondi_SinkEt, CM_Bondi_SinkNCell)
