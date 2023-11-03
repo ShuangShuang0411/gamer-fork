@@ -741,8 +741,8 @@ void GetClusterCenter( int lv, bool AdjustPos, bool AdjustVel, double Cen_old[][
    if ( (CurrentMaxLv  &&  AdjustPos == true) || (CurrentMaxLv  &&  AdjustVel == true) ){
 
 //    Do not support periodic BC
-      for (int f=0; f<6; f++)                               
-         if (OPT__BC_FLU[f] == BC_FLU_PERIODIC) Aux_Error( ERROR_INFO, "do not support periodic BC (OPT__BC_FLU* = 1)!\n" ); 
+//      for (int f=0; f<6; f++)                               
+//         if (OPT__BC_FLU[f] == BC_FLU_PERIODIC) Aux_Error( ERROR_INFO, "do not support periodic BC (OPT__BC_FLU* = 1)!\n" ); 
 
 #     ifdef GRAVITY                                            
       if ( OPT__BC_POT == BC_POT_PERIODIC )  Aux_Error( ERROR_INFO, "do not support periodic BC (OPT__BC_POT = 1)!\n" );
