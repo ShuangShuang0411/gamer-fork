@@ -1,11 +1,8 @@
 #include "GAMER.h"
 #include "TestProb.h"
-#include <gsl/gsl_integration.h> 
 
 
 static void Output_ExactCooling();
-double Lambda(double Temp, double ZIRON);
-double integrand(double Temp, void *params);
 
 // problem-specific global variables
 // =======================================================================================
@@ -155,7 +152,6 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    double Dens, MomX, MomY, MomZ, Pres, Eint, Etot;
 // Convert the input number density into mass density rho
    double cl_dens = (EC_Dens*MU_NORM*cl_mol) / UNIT_D;
-//   double cl_dens = (EC_Dens*MU_NORM*0.61709348966) / UNIT_D;
    double cl_pres = EoS_DensTemp2Pres_CPUPtr( cl_dens, EC_Temp, NULL, EoS_AuxArray_Flt, EoS_AuxArray_Int, h_EoS_Table );
 
    Dens = cl_dens;
@@ -216,7 +212,6 @@ void Output_ExactCooling()
    const double cl_mole      = 2.0/(1+cl_X);   // mean electron molecular weights
    const double cl_moli      = 1.0/cl_X;   // mean proton molecular weights
    const double cl_moli_mole = cl_moli*cl_mole;  // Assume the molecular weights are constant, mu_e*mu_i = 1.464
-   const double Temp_cut     = 1e5;
  
 // Get the numerical result
    real fluid[NCOMP_TOTAL];
@@ -241,17 +236,7 @@ void Output_ExactCooling()
    Temp_nume /= count;
    Tcool_nume /= count;
 
-// (1) Compute the analytical solution for Sutherland-Dopita cooling function 
-   double gsl_result, gsl_error;
-   double K = -(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_moli_mole/Const_kB;
-   gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000);
-   gsl_function F;
-   F.function = &integrand;
-   gsl_integration_qags(&F, EC_Temp, Temp_nume, 0, 1e-10, 1000, w, &gsl_result, &gsl_error);
-   double Time_gsl = gsl_result/K;
-
-/*
-// (2) Compute the analytical solution for single branch cooling function
+// Compute the analytical solution for single branch cooling function
    double Temp_anal, Tcool_anal;
    if (sqrt(EC_Temp) >= 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*Time[0]*UNIT_T){
       Temp_anal = pow(sqrt(EC_Temp) - 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*Time[0]*UNIT_T, 2.0);
@@ -260,61 +245,12 @@ void Output_ExactCooling()
    else   Temp_anal = MIN_TEMP;
 
    Tcool_anal = 1.0/(GAMMA-1)*EC_Dens*Const_kB*Temp_anal/((EC_Dens*cl_mol/cl_mole)*(EC_Dens*cl_mol/cl_moli)*3.2217e-27*sqrt(Temp_anal))/Const_Myr;
-*/
-/*
-// (3) Compute the analytical solution for 2 branch cooling function
-   const int size_anal = 1001;       
-   double time_anal[size_anal];
-   double Temp_anal_arr[size_anal] = {0.0};
-   double Tcool_anal_arr[size_anal] = {0.0};
-   double time_cut, Temp_anal, Tcool_anal;
-
-   for (int i=0; i<size_anal; i++)   time_anal[i] = i*0.1;
-
-   for (int i=0; i<size_anal; i++) {
-      if (sqrt(EC_Temp) >= 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*time_anal[i]*Const_Myr){
-         Temp_anal_arr[i] = pow(sqrt(EC_Temp) - 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*time_anal[i]*Const_Myr, 2.0);
-         if (Temp_anal_arr[i] < MIN_TEMP)   Temp_anal_arr[i] = MIN_TEMP;
-      }
-      else   Temp_anal_arr[i] = MIN_TEMP;
-   }
-
-   for (int i=0; i<size_anal-1; i++) {
-      if ( Temp_anal_arr[i] >= Temp_cut && Temp_anal_arr[i+1] <= Temp_cut ){
-         time_cut = time_anal[i] + (time_anal[i+1]-time_anal[i])*(Temp_cut-Temp_anal_arr[i])/(Temp_anal_arr[i+1]-Temp_anal_arr[i]);
-      }
-   }
-
-//   for (int i=0; i<size_anal; i++) {
-//      Tcool_anal[i] = 1.0/(GAMMA-1)*EC_Dens*Const_kB*Temp_anal[i]/((EC_Dens*cl_mol/cl_mole)*(EC_Dens*cl_mol/cl_moli)*3.2217e-27*sqrt(Temp_anal[i]))/Const_Myr;
-//   }
-
-   if ( Time[0]*UNIT_T <= time_cut*Const_Myr ){
-      if (sqrt(EC_Temp) >= 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*Time[0]*UNIT_T){
-          Temp_anal = pow(sqrt(EC_Temp) - 3.2217e-27/2.0*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*Time[0]*UNIT_T, 2.0);
-      if (Temp_anal < MIN_TEMP)   Temp_anal = MIN_TEMP;
-      }
-      else   Temp_anal = MIN_TEMP;
-   
-      Tcool_anal = 1.0/(GAMMA-1)*EC_Dens*Const_kB*Temp_anal/((EC_Dens*cl_mol/cl_mole)*(EC_Dens*cl_mol/cl_moli)*3.2217e-27*sqrt(Temp_anal))/Const_Myr;
-   }
-   else {
-      if (pow(Temp_cut, 0.6) >= 3.2217e-27*0.6*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*(Time[0]*UNIT_T-time_cut*Const_Myr)){
-          Temp_anal = pow(pow(Temp_cut, 0.6) - 3.2217e-27*0.6*(GAMMA-1)*EC_Dens*cl_mol*cl_mol/cl_mole/cl_moli/Const_kB*(Time[0]*UNIT_T-time_cut*Const_Myr), 1.0/0.6);
-      if (Temp_anal < MIN_TEMP)   Temp_anal = MIN_TEMP;
-      }   
-      else   Temp_anal = MIN_TEMP;
-   
-      Tcool_anal = 1.0/(GAMMA-1)*EC_Dens*Const_kB*Temp_anal/((EC_Dens*cl_mol/cl_mole)*(EC_Dens*cl_mol/cl_moli)*3.2217e-27*pow(Temp_anal, 0.4))/Const_Myr;
-   }
-*/
 
 // Record
    if ( MPI_Rank == 0 ) {
       FILE *File_User = fopen( FileName, "a" );
       fprintf( File_User, "%14.7e%10d ", Time[0]*UNIT_T/Const_Myr, DumpID );
-//      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Temp_anal, (Temp_nume-Temp_anal)/Temp_anal, Tcool_nume, Tcool_anal );
-      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Time_gsl/Const_Myr, (Time[0]*UNIT_T-Time_gsl)/Time_gsl, Tcool_nume, 0.0 );
+      fprintf( File_User, "%14.7e %14.7e %14.7e %14.7e %14.7e", Temp_nume, Temp_anal, (Temp_nume-Temp_anal)/Temp_anal, Tcool_nume, Tcool_anal );
       fprintf( File_User, "\n" );
       fclose( File_User );
    }
@@ -322,54 +258,6 @@ void Output_ExactCooling()
 
 } // FUNCTION : Output_ExactCooling
 #endif
-
-
-double Lambda(double TEMP, double ZIRON){
-   double TLOGC = 5.65;
-   double QLOGC = -21.566;
-   double QLOGINFTY = -23.1;
-   double PPP = 0.8;
-   double TLOGM = 5.1;
-   double QLOGM = -20.85;
-   double SIG = 0.65;
-   double TLOG = log10(TEMP);
-
-   double QLOG0, QLOG1, QLAMBDA0, QLAMBDA1, ARG, BUMP1RHS, BUMP2LHS, Lambdat;
-   if (TLOG >= 6.1)   QLOG0 = -26.39 + 0.471*log10(TEMP + 3.1623e6);
-   else if (TLOG >= 4.9){         
-      ARG = pow(10.0, (-(TLOG-4.9)/0.5)) + 0.077302;
-      QLOG0 = -22.16 + log10(ARG);
-   }                              
-   else if (TLOG >= 4.25){        
-      BUMP1RHS = -21.98 - ((TLOG-4.25)/0.55);
-      BUMP2LHS = -22.16 - pow((TLOG-4.9)/0.284, 2); 
-      QLOG0 = fmax(BUMP1RHS, BUMP2LHS);
-   }                              
-   else   QLOG0 = -21.98 - pow((TLOG-4.25)/0.2, 2); 
-                                  
-   if (QLOG0 < -30.0)   QLOG0 = -30.0;
-   QLAMBDA0 = pow(10.0, QLOG0); 
-
-   if (TLOG >= 5.65) {
-       QLOG1 = QLOGC - PPP * (TLOG - TLOGC);
-       QLOG1 = fmax(QLOG1, QLOGINFTY);
-   } else {
-       QLOG1 = QLOGM - pow((TLOG - TLOGM) / SIG, 2.0);
-   }
-
-   if (QLOG1 < -30.0)   QLOG1 = -30.0;
-   QLAMBDA1 = pow(10.0, QLOG1);
-
-   Lambdat = QLAMBDA0 + ZIRON * QLAMBDA1;
-//   Lambdat = 3.2217e-27 * sqrt(TEMP);
-
-   return Lambdat;
-}
-
-double integrand(double Temp, void *params){
-    double Lambda_T = Lambda(Temp, 0.018);
-    return 1.0/Lambda_T;
-}
 
 
 
@@ -412,49 +300,6 @@ void Init_TestProb_Hydro_ExactCooling()
 //   Aux_Record_User_Ptr            = Aux_Record_ClusterMerger;
 
 #  endif
-/*
-   Init_Function_User_Ptr            = SetGridIC;
-#  ifdef MHD
-   Init_Function_BField_User_Ptr     = SetBFieldIC;
-#  endif
-// comment out Init_ByFile_User_Ptr to use the default
-// Init_ByFile_User_Ptr              = NULL; // option: OPT__INIT=3;             example: Init/Init_ByFile.cpp -> Init_ByFile_Default()
-   Init_Field_User_Ptr               = NULL; // set NCOMP_PASSIVE_USER;          example: TestProblem/Hydro/Plummer/Init_TestProb_Hydro_Plummer.cpp --> AddNewField()
-   Flag_Region_Ptr                   = NULL; // option: OPT__FLAG_REGION;        example: Refing/Flag_Region.cpp
-   Flag_User_Ptr                     = NULL; // option: OPT__FLAG_USER;          example: Refine/Flag_User.cpp
-   Mis_GetTimeStep_User_Ptr          = NULL; // option: OPT__DT_USER;            example: Miscellaneous/Mis_GetTimeStep_User.cpp
-   Mis_UserWorkBeforeNextLevel_Ptr   = NULL; //                                  example: Miscellaneous/Mis_UserWorkBeforeNextLevel.cpp
-   Mis_UserWorkBeforeNextSubstep_Ptr = NULL; //                                  example: Miscellaneous/Mis_UserWorkBeforeNextSubstep.cpp
-   BC_User_Ptr                       = NULL; // option: OPT__BC_FLU_*=4;         example: TestProblem/ELBDM/ExtPot/Init_TestProb_ELBDM_ExtPot.cpp --> BC()
-#  ifdef MHD
-   BC_BField_User_Ptr                = NULL; // option: OPT__BC_FLU_*=4;
-#  endif
-   Flu_ResetByUser_Func_Ptr          = NULL; // option: OPT__RESET_FLUID;        example: Fluid/Flu_ResetByUser.cpp
-   Init_DerivedField_User_Ptr        = NULL; // option: OPT__OUTPUT_USER_FIELD;  example: Fluid/Flu_DerivedField_User.cpp
-   Output_User_Ptr                   = NULL; // option: OPT__OUTPUT_USER;        example: TestProblem/Hydro/AcousticWave/Init_TestProb_Hydro_AcousticWave.cpp --> OutputError()
-   Output_UserWorkBeforeOutput_Ptr   = NULL; // option: none;                    example: Output/Output_UserWorkBeforeOutput.cpp
-   Aux_Record_User_Ptr               = NULL; // option: OPT__RECORD_USER;        example: Auxiliary/Aux_Record_User.cpp
-   Init_User_Ptr                     = NULL; // option: none;                    example: none
-   End_User_Ptr                      = NULL; // option: none;                    example: TestProblem/Hydro/ClusterMerger_vs_Flash/Init_TestProb_ClusterMerger_vs_Flash.cpp --> End_ClusterMerger()
-#  ifdef GRAVITY
-   Init_ExtAcc_Ptr                   = NULL; // option: OPT__EXT_ACC;            example: SelfGravity/CPU_Gravity/CPU_ExtAcc_PointMass.cpp
-   End_ExtAcc_Ptr                    = NULL;
-   Init_ExtPot_Ptr                   = NULL; // option: OPT__EXT_POT;            example: SelfGravity/CPU_Poisson/CPU_ExtPot_PointMass.cpp
-   End_ExtPot_Ptr                    = NULL;
-   Poi_AddExtraMassForGravity_Ptr    = NULL; // option: OPT__GRAVITY_EXTRA_MASS; example: none
-   Poi_UserWorkBeforePoisson_Ptr     = NULL; // option: none;                    example: SelfGravity/Poi_UserWorkBeforePoisson.cpp
-#  endif
-#  ifdef PARTICLE
-   Par_Init_ByFunction_Ptr           = NULL; // option: PAR_INIT=1;              example: Particle/Par_Init_ByFunction.cpp
-   Par_Init_Attribute_User_Ptr       = NULL; // set PAR_NATT_USER;               example: TestProblem/Hydro/AGORA_IsolatedGalaxy/Init_TestProb_Hydro_AGORA_IsolatedGalaxy.cpp --> AddNewParticleAttribute()
-#  endif
-#  if ( EOS == EOS_USER )
-   EoS_Init_Ptr                      = NULL; // option: EOS in the Makefile;     example: EoS/User_Template/CPU_EoS_User_Template.cpp
-   EoS_End_Ptr                       = NULL;
-#  endif
-#  endif // #if ( MODEL == HYDRO )
-   Src_Init_User_Ptr                 = NULL; // option: SRC_USER;                example: SourceTerms/User_Template/CPU_Src_User_Template.cpp
-*/
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );
 
